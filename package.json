@@ -49,9 +49,12 @@
     "fstream": "^1.0.11",
     "git-cli": "^0.10.0",
     "lambda-git": "^0.1.0",
+    "lodash": "^4.17.4",
     "mustache-express": "^1.2.5",
+    "prettyjson": "^1.2.1",
     "pug": "^2.0.0-rc.1",
     "request": "^2.81.0",
-    "unzipper": "^0.8.9"
+    "unzipper": "^0.8.9",
+    "uuid": "^3.1.0"
   }
 }
