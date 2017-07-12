@@ -45,6 +45,9 @@ app.post('/project', (req, res) => {
   const workingDir = '/tmp/projects/' + slug;
   const fileService = new FileService(workingDir);
 
+  const expectedMessage = project.files.map(file => file.uniqueName).sort().toString();
+
+  // note: this started out feeling ok, but now it feels rather unclean. Consider refactoring.
   repo
     .assertExists(slug)
     // this catches a situation where the repository does not exist.
@@ -57,18 +60,20 @@ app.post('/project', (req, res) => {
     */
 
     // have any of our files been changed since the last commit, if any?
-    .then(() => repo.assertModified(slug, project.files.map(file => file.uniqueName)))
-    // if the repo is unchanged then do nothing
-    .catch({ message: 'REPO_NOT_CHANGED' }, e => {})
+    .then(() => repo.assertModified(slug, expectedMessage))
     // if we have changes then we need to clone the remote repo
     .then(() => repo.clone(slug, workingDir))
     // next, we'll download the files from newline into our project/repo
     // let's get these file into the scope of this promise chain
     .then(() => project.files)
-    // download each file
+    // download all files
     .map(file => fileService.downloadFile(file))
     // unzip the files (note: I don't like how I'm passing the files array through this chain. it feels weird.)
     .then(files => fileService.unzip(files))
+    // add and commit changed files to git
+    .then(files => repo.add(workingDir).then(() => files))
+    // commit any changes
+    .then(files => repo.commit(workingDir, expectedMessage).then(() => files))
     // send a response to the client
     .then(files => {
       res.json(files);

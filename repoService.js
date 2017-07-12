@@ -1,13 +1,20 @@
 const Promise = require('bluebird');
 const request = Promise.promisify(require('request'));
-require('lambda-git')();
+require('lambda-git')({
+  updateEnv: process.platform !== 'darwin'
+});
 const Repository = require('git-cli').Repository;
+const fs = require('fs-extra');
 
 module.exports = function RepoService(org, apiToken) {
   const apiRoot = 'https://api.github.com';
   const token = `?access_token=${apiToken}`;
 
-  // checks if a repository exists
+  /**
+   * checks if a repository exists
+   * @param  {[type]} slug [description]
+   * @return {[type]}      [description]
+   */
   this.assertExists = slug => {
     return get(`${apiRoot}/repos/${org}/${slug}`).then(response => {
       if (response.statusCode === 200) {
@@ -20,7 +27,11 @@ module.exports = function RepoService(org, apiToken) {
     });
   };
 
-  // creates a repository
+  /**
+   * creates a repository
+   * @param  {[type]} slug [description]
+   * @return {[type]}      [description]
+   */
   this.create = slug => {
     const repository = {
       name: slug
@@ -35,10 +46,13 @@ module.exports = function RepoService(org, apiToken) {
     });
   };
 
-  // this checks to see if we've ever logged any of the specified file names
-  this.assertModified = (slug, files) => {
-    const expectedMessage = files.sort().toString();
-
+  /**
+   * this checks to see if we've ever logged any of the specified file names
+   * @param  {[type]} slug  [description]
+   * @param  {[type]} expectedMessage [description]
+   * @return {[type]}       [description]
+   */
+  this.assertModified = (slug, expectedMessage) => {
     return get(`${apiRoot}/repos/${org}/${slug}/commits`).then(response => {
       if (response.statusCode === 200) {
         // we are expecting that the files have been changed. not not then we throw a message
@@ -56,8 +70,38 @@ module.exports = function RepoService(org, apiToken) {
     });
   };
 
-  this.clone = (slug, workingDir) => Repository.clone(`https://github.com/${org}/${slug}`, workingDir);
+  /**
+   * Clones a repo from github
+   * @param  {[type]} slug       [description]
+   * @param  {[type]} workingDir [description]
+   * @return {[type]}            [description]
+   */
+  this.clone = (slug, workingDir) => {
+    if (!fs.pathExistsSync(workingDir)) {
+      return Repository.clone(`https://github.com/${org}/${slug}`, workingDir);
+    }
+  };
 
+  /**
+   * Adds all changes in a directory to git
+   * @type {String}
+   * @return {[type]}
+   */
+  this.add = workingDir => new Repository(workingDir + '/.git').add();
+
+  /**
+   * commits changes in the specified working directory
+   * @param  {[type]} workingDir [description]
+   * @param  {[type]} message    [description]
+   * @return {[type]}            [description]
+   */
+  this.commit = (workingDir, message) => new Repository(workingDir + '/.git').commit(message);
+
+  /**
+   * Helper function for get requests
+   * @param  {[type]} url [description]
+   * @return {[type]}     [description]
+   */
   function get(url) {
     console.log('GET: ' + url);
     return request({
@@ -69,6 +113,12 @@ module.exports = function RepoService(org, apiToken) {
     });
   }
 
+  /**
+   * helper function for post requests
+   * @param  {[type]} url  [description]
+   * @param  {[type]} body [description]
+   * @return {[type]}      [description]
+   */
   function post(url, body) {
     console.log('POST: ' + url);
     return request({

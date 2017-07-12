@@ -4,14 +4,22 @@ const unzipper = require('unzipper');
 const fs = require('fs-extra');
 
 module.exports = function FileService(downloadDirectory) {
-  // this downloads a file from newline and saves it into the temp directory
+  /**
+   * this downloads a file from newline and saves it into the temp directory
+   * @param  {[type]} file [description]
+   * @return {[type]}      [description]
+   */
   this.downloadFile = file => {
     return download(file.url, { directory: downloadDirectory, filename: file.uniqueName }).then(tempFile =>
       Object.assign({}, file, { tempFile })
     );
   };
 
-  // this unzips a files into its temp directory
+  /**
+   * this unzips a files into its temp directory
+   * @param  {[type]} files [description]
+   * @return {[type]}       [description]
+   */
   this.unzip = files =>
     Promise.map(files, file =>
       fs.createReadStream(file.tempFile).pipe(unzipper.Extract({ path: downloadDirectory })).promise()
