@@ -19,6 +19,9 @@ paths:
         responses:
           default:
             statusCode: 200
+            method.response.header.Access-Control-Allow-Headers : "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+            method.response.header.Access-Control-Allow-Methods : "'*'"
+            method.response.header.Access-Control-Allow-Origin : "'*'"
         uri: arn:aws:apigateway:us-east-1:lambda:path/2015-03-31/functions/arn:aws:lambda:us-east-1:123154860418:function:${stageVariables.ServerlessExpressLambdaFunctionName}/invocations
         passthroughBehavior: when_no_match
         httpMethod: POST
@@ -47,7 +50,7 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Origin: "'https://example.com'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
         passthroughBehavior: when_no_match
         requestTemplates:
           application/json: "{\"statusCode\": 200}"
@@ -90,7 +93,7 @@ paths:
             responseParameters:
               method.response.header.Access-Control-Allow-Methods: "'DELETE,GET,HEAD,OPTIONS,PATCH,POST,PUT'"
               method.response.header.Access-Control-Allow-Headers: "'Content-Type,Authorization,X-Amz-Date,X-Api-Key,X-Amz-Security-Token'"
-              method.response.header.Access-Control-Allow-Origin: "'https://example.com'"
+              method.response.header.Access-Control-Allow-Origin: "'*'"
         passthroughBehavior: when_no_match
         requestTemplates:
           application/json: "{\"statusCode\": 200}"

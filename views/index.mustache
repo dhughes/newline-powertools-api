@@ -5,6 +5,73 @@
     <title>Test</title>
   </head>
   <body>
-    This is a test
+    This is a test.
+    <script>
+      var project = {
+      	"name": "Week 1 - Weekly Assignment",
+      	"files": [
+      		{
+      			"name": "project-images.zip",
+      			"uniqueName": "eaed7609-project-images.zip",
+      			"url": "https://tiy-learn-content.s3.amazonaws.com/eaed7609-project-images.zip"
+      		},
+      		{
+      			"name": "project-layout.zip",
+      			"uniqueName": "c6980d5e-project-layout.zip",
+      			"url": "https://tiy-learn-content.s3.amazonaws.com/c6980d5e-project-layout.zip"
+      		},
+      		{
+      			"name": "project-text-content.zip",
+      			"uniqueName": "599b0309-project-text-content.zip",
+      			"url": "https://tiy-learn-content.s3.amazonaws.com/599b0309-project-text-content.zip"
+      		}
+      	]
+      };
+
+      /////
+      const apiRoot = 'https://td4eypkzag.execute-api.us-east-1.amazonaws.com/prod';
+
+      // Notify the Java app about the project. This will tell Java to create, update, etc, a github repo
+      fetch(apiRoot + '/project', {
+        method: 'POST',
+        body: JSON.stringify(project),
+        headers: new Headers({
+          'Content-Type': 'application/json'
+        })
+      })
+        .then(response => {
+          if (response.status === 200) {
+            return response.text();
+          } else {
+            console.log('BAD!!!! ' + response.status + ' from project sync.');
+          }
+        })
+        .then(text => console.log("maybe good", text))
+        .catch(response => {
+          console.log('Caught "' + response + '" from project sync.');
+        });
+    
+
+    </script>
   </body>
 </html>
+
+
+<!--
+x-amazon-apigateway-integration:
+        type: mock
+        requestTemplates:
+          application/json: |
+            {
+              "statusCode" : 200
+            }
+        responses:
+          "default":
+            statusCode: "200"
+            responseParameters:
+              method.response.header.Access-Control-Allow-Headers : "'Content-Type,X-Amz-Date,Authorization,X-Api-Key'"
+              method.response.header.Access-Control-Allow-Methods : "'*'"
+              method.response.header.Access-Control-Allow-Origin : "'*'"
+            responseTemplates:
+              application/json: |
+                {} -->

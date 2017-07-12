@@ -1,10 +1,9 @@
 {
-    "httpMethod": "OPTIONS",
-    "path": "/project",
-    "resource": "/{proxy+}",
+    "httpMethod": "GET",
+    "path": "/",
+    "resource": "/",
     "queryStringParameters": {},
     "pathParameters": {
-        "proxy": "users"
     },
     "headers": {
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
@@ -44,8 +43,8 @@
             "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/52.0.2743.116 Safari/537.36",
             "user": ""
         },
-        "resourcePath": "/{proxy+}",
-        "httpMethod": "OPTIONS",
+        "resourcePath": "/",
+        "httpMethod": "GET",
         "apiId": "xxxxxxxxxx"
     }
 }
