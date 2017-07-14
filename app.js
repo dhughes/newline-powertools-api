@@ -33,7 +33,11 @@ app.post('/project', (req, res) => {
     // sync to a github repo
     .sync(req.body)
     // return the result
-    .then(result => res.json(result))
+    .then(result =>
+      res.json({
+        githubProjectUrl: `https://github.com/${result.org}/${result.slug}`
+      })
+    )
     // if there are any errors, be sure to catch them
     .catch(e => {
       res.status(500).json(e);
