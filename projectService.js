@@ -27,32 +27,53 @@ function ProjectService() {
     const githubRoot = `https://${githubUsername}:${githubApiToken}@github.com/`;
     const token = `access_token=${githubApiToken}`;
     const org = 'tiy-raleigh-java';
+    const pid = this.pad(4, Math.round(Math.random() * 1000));
 
     // constants that are dynamic :)
     const slug = project.name.replace(/\W+/g, '-');
     const workingDir = `${tempDir}/${slug}`;
+    const lockFile = `${workingDir}.lock`;
     const expectedMessage = project.files.map(file => file.uniqueName).sort().toString();
 
-    //this.walkPromise('/tmp/git').then(res => console.log(res));
+    const state = {
+      tempDir,
+      tempGit,
+      githubApiToken,
+      apiRoot,
+      token,
+      org,
+      project,
+      slug,
+      workingDir,
+      lockFile,
+      expectedMessage,
+      githubRoot,
+      pid
+    };
 
-    return (
-      Promise.resolve({
-        tempDir,
-        tempGit,
-        githubApiToken,
-        apiRoot,
-        token,
-        org,
-        project,
-        slug,
-        workingDir,
-        expectedMessage,
-        githubRoot
-      })
+    /*
+      We don't want multiple clients trying to sync at the same time.
+      Consider what might happen if, one request has just cleaned up
+      the downloaded zips and is about to add the unzipped files into
+      git. But, just before this happens another request downloads the
+      zip files into the same directory. We could easily end up with the
+      zip files in Git. Boo. So, to attempt to avoid this, I'm going to
+      create a lock file based on the project's temp folder. If this
+      file exists, then the sync process will simply return without
+      syncing. If it doesn't, it will create it. This is done syncronously
+      to hopefully avoid race conditions.
+     */
+
+    if (this.projectIsLocked(state)) {
+      return Promise.resolve(state).then(state => this.log(state, 'Project is locked'));
+    }
+
+    return Promise.using(this.createLockFile(state), () =>
+      Promise.resolve(state)
         //
         .then(state => this.ensureGitIsInstalled(state))
         // log our environment
-        .then(state => this.log(state, process.env, 'Environment Vars'))
+        //.then(state => this.log(state, process.env, 'Environment Vars'))
         // make sure our project exists as a github repo
         .then(state => this.ensureGithubRepoExists(state))
         // check if github is up to date. If not, we sync!
@@ -63,9 +84,28 @@ function ProjectService() {
           })
         )
         // log our state
-        .then(state => this.log(state, state, 'State'))
+        //.then(state => this.log(state, state, 'State'))
         // catch any errors
         .catch(error => this.log(state, error, 'sync/Error!'))
+    );
+  };
+
+  /**
+   * This syncronous function indicates whether or not the project directory is locked
+   * @param  {[type]} state [description]
+   * @return {boolean}      true if locked, false if not locked
+   */
+  this.projectIsLocked = state => fs.pathExistsSync(state.lockFile);
+
+  /**
+   * This creates a lock file and a disposer to clean up when we're done.
+   * @type {[type]}
+   */
+  this.createLockFile = state => {
+    return (
+      Promise.fromCallback(cb => fs.ensureFile(state.lockFile, cb))
+        // cleanup
+        .disposer(() => fs.remove(state.lockFile))
     );
   };
 
@@ -347,9 +387,10 @@ function ProjectService() {
    * @return {}         the current state object
    */
   this.log = (state, thing = state, label = '') => {
-    console.log(`-----${label}-----`);
-    console.log(prettyjson.render(thing));
-    console.log(`-----${label.replace(/./g, '-')}-----`);
+    //console.log(`-----${label}-----`);
+    //label ? label + ':' : '';
+    console.log(`${state.slug}:${state.pid}: ${label ? '(' + label + ')' : ''}${prettyjson.render(thing)}`);
+    //console.log(`-----${label.replace(/./g, '-')}-----`);
     return Promise.resolve(state);
   };
 
@@ -384,6 +425,9 @@ function ProjectService() {
       }
     });
   }
+
+  this.pad = (len, num) =>
+    ('0'.repeat(len) + num).split('').reduceRight((acc, item) => (acc.length < len ? item + acc : acc));
 
   this.walkPromise = Promise.promisify(walk);
 
