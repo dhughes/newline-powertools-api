@@ -165,7 +165,7 @@ function ProjectService() {
       .then(() => state);
 
   /**
-   * This performs all the actions of actively syncing the zip files to github
+   * This performs all the actions of actively syncing the files files to github
    * @param  {[type]} state [description]
    * @return {[type]}       [description]
    */
@@ -176,18 +176,30 @@ function ProjectService() {
         .then(state => this.cloneGithubRepo(state))
         // empty the project directory (except for .git)
         .then(state => this.emptyProjectDirectory(state))
-        // download the zip files
-        .then(state => this.downloadZips(state))
-        // extract the zip files
+        // download the files
+        .then(state => this.downloadFiles(state))
+        // if any files are zips then extract them
         .then(state => this.extractZips(state))
-        // remove the zip files and the __MACOSX folder
+        // remove any zip files and the __MACOSX folder
         .then(state => this.cleanupZips(state))
+        // fix the names of non-zip downloaded files
+        .then(state => this.cleanupDownloadedFileNames(state))
         // add the changed files
         .then(state => this.gitAdd(state))
         // commit the changes
         .then(state => this.gitCommit(state))
         // push the changes to github
         .then(state => this.pushToGithub(state))
+    );
+
+  this.cleanupDownloadedFileNames = state =>
+    this.log(state, 'Clean up Zip Files').then(() =>
+      Promise.map(state.project.files.filter(file => file.tempFile.indexOf('.zip') === -1), file => {
+        return fs.move(file.tempFile, `${state.workingDir}/${file.name}`);
+      })
+        .then(() => fs.remove(`${state.workingDir}/__MACOSX`))
+        .catch(error => this.log(state, error, 'cleanupZips/Error!'))
+        .then(() => state)
     );
 
   /**
@@ -230,7 +242,9 @@ function ProjectService() {
    */
   this.cleanupZips = state =>
     this.log(state, 'Clean up Zip Files').then(() =>
-      Promise.map(state.project.files, file => fs.remove(file.tempFile))
+      Promise.map(state.project.files.filter(file => file.tempFile.indexOf('.zip') !== -1), file => {
+        return fs.remove(file.tempFile);
+      })
         .then(() => fs.remove(`${state.workingDir}/__MACOSX`))
         .catch(error => this.log(state, error, 'cleanupZips/Error!'))
         .then(() => state)
@@ -243,7 +257,7 @@ function ProjectService() {
    */
   this.extractZips = state =>
     this.log(state, 'Extract Zip Files').then(() =>
-      Promise.map(state.project.files, file =>
+      Promise.map(state.project.files.filter(file => file.tempFile.indexOf('.zip') !== -1), file =>
         fs.createReadStream(file.tempFile).pipe(unzipper.Extract({ path: state.workingDir })).promise()
       )
         .catch(error => this.log(state, error, 'extractZips/Error!'))
@@ -251,23 +265,23 @@ function ProjectService() {
     );
 
   /**
-   * This downloads the zips for the project into a temporary directory
+   * This downloads the files for the project into a temporary directory
    * @param  {[type]} state [description]
    * @return {[type]}       [description]
    */
-  this.downloadZips = state =>
-    this.log(state, 'Download Zip Files').then(() =>
+  this.downloadFiles = state =>
+    this.log(state, 'Download Files').then(() =>
       Promise.map(state.project.files, file =>
         download(file.url, { directory: state.workingDir, filename: file.uniqueName }).then(tempFile =>
           merge({}, file, { tempFile })
         )
       )
-        .catch(error => this.log(state, error, 'downloadZips/Error!'))
+        .catch(error => this.log(state, error, 'downloadFiles/Error!'))
         .then(files => merge({}, state, { project: { files } }))
     );
 
   /**
-   * This checks to see if github is up to date with the latest zip files
+   * This checks to see if github is up to date with the latest files
    * @param  {[type]} state [description]
    * @return {[type]}       [description]
    */
